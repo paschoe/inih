@@ -296,7 +296,6 @@ inline int ini_parse(const char* filename, ini_handler handler, void* user)
     fclose(file);
     return error;
 }
-
 #endif /* __INI_H__ */
 
 
@@ -311,6 +310,8 @@ inline int ini_parse(const char* filename, ini_handler handler, void* user)
 // for simplicity here rather than speed, but it should be pretty decent.)
 class INIReader
 {
+protected:
+    typedef std::pair<std::string, std::string> IniKey;
 public:
     // Empty Constructor
     INIReader() {};
@@ -355,9 +356,9 @@ public:
 
 protected:
     int _error;
-    std::map<std::string, std::string> _values;
+    std::map<IniKey, std::string> _values;
     std::set<std::string> _sections;
-    static std::string MakeKey(const std::string& section, const std::string& name);
+    static IniKey MakeKey(const std::string& section, const std::string& name);
     static int ValueHandler(void* user, const char* section, const char* name,
                             const char* value);
 };
@@ -394,7 +395,7 @@ inline const std::set<std::string>& INIReader::Sections() const
 
 inline std::string INIReader::Get(const std::string& section, const std::string& name, const std::string& default_value) const
 {
-    std::string key = MakeKey(section, name);
+    IniKey key = MakeKey(section, name);
     return _values.count(key) ? _values.at(key) : default_value;
 }
 
@@ -417,6 +418,7 @@ inline double INIReader::GetReal(const std::string& section, const std::string& 
     return end > value ? n : default_value;
 }
 
+#ifndef __VXWORKS__
 inline float INIReader::GetFloat(const std::string& section, const std::string& name, float default_value) const
 {
     std::string valstr = Get(section, name, "");
@@ -425,6 +427,7 @@ inline float INIReader::GetFloat(const std::string& section, const std::string& 
     float n = strtof(value, &end);
     return end > value ? n : default_value;
 }
+#endif
 
 inline bool INIReader::GetBoolean(const std::string& section, const std::string& name, bool default_value) const
 {
@@ -439,19 +442,20 @@ inline bool INIReader::GetBoolean(const std::string& section, const std::string&
         return default_value;
 }
 
-inline std::string INIReader::MakeKey(const std::string& section, const std::string& name)
+inline INIReader::IniKey INIReader::MakeKey(const std::string& section, const std::string& name)
 {
-    std::string key = section + "=" + name;
-    // Convert to lower case to make section/name lookups case-insensitive
-    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-    return key;
+    std::string newSection;
+    std::string newName;
+    std::transform(section.begin(), section.end(), newSection.begin(), ::tolower);
+    std::transform(name.begin(), name.end(), newName.begin(), ::tolower);
+    return std::make_pair(newSection, name);
 }
 
 inline int INIReader::ValueHandler(void* user, const char* section, const char* name,
                             const char* value)
 {
     INIReader* reader = (INIReader*)user;
-    std::string key = MakeKey(section, name);
+    IniKey key = MakeKey(section, name);
     if (reader->_values[key].size() > 0)
         reader->_values[key] += "\n";
     reader->_values[key] += value;
