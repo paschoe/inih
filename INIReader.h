@@ -358,7 +358,7 @@ protected:
     int _error;
     std::map<IniKey, std::string> _values;
     std::set<std::string> _sections;
-    static IniKey MakeKey(const std::string& section, const std::string& name);
+    static IniKey MakeKey(std::string section, std::string name);
     static int ValueHandler(void* user, const char* section, const char* name,
                             const char* value);
 };
@@ -442,13 +442,11 @@ inline bool INIReader::GetBoolean(const std::string& section, const std::string&
         return default_value;
 }
 
-inline INIReader::IniKey INIReader::MakeKey(const std::string& section, const std::string& name)
+inline INIReader::IniKey INIReader::MakeKey(std::string section, std::string name)
 {
-    std::string newSection;
-    std::string newName;
-    std::transform(section.begin(), section.end(), newSection.begin(), ::tolower);
-    std::transform(name.begin(), name.end(), newName.begin(), ::tolower);
-    return std::make_pair(newSection, name);
+    std::transform(section.begin(), section.end(), section.begin(), ::tolower);
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    return std::make_pair(section, name);
 }
 
 inline int INIReader::ValueHandler(void* user, const char* section, const char* name,
